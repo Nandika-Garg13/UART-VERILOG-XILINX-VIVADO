@@ -1,9 +1,9 @@
-# UART Transceiver in VERILOG (XILINX VIVADO)
+# UART Transceiver in Verilog (Xilinx Vivado)
 **Project Overview:**
 
-This project implements a UART (Universal Asynchronous Receiver–Transmitter) in Verilog, with support for FIFO buffering, configurable baud rate generation, and modular testbench verification.
+This project implements a **UART (Universal Asynchronous Receiver–Transmitter) in Verilog**, with support for FIFO buffering, configurable baud rate generation, and modular testbench verification.
 
-The design was developed and tested in Xilinx Vivado, with simulation testbenches provided for transmitter, receiver, and the integrated UART system.
+The design was developed and tested in **Xilinx Vivado**, with simulation testbenches provided for transmitter, receiver, and the integrated UART system.
 
 **Tools & Environment:**
 
