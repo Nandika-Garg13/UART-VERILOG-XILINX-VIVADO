@@ -5,57 +5,48 @@
 module tb_uart_tx;
 
     reg clk = 0;
-    always #10 clk = ~clk;   // 50 MHz clock
+    always #10 clk = ~clk; // 50 MHz
 
     reg reset = 1;
-
-    // Baud generator
-    wire oversample_tick, bit_tick;
-    baud_gen #(.CLK_FREQ(50_000_000), .BAUD(115200)) u_baud (
-        .clk(clk),
-        .reset(reset),
-        .oversample_tick(oversample_tick),
-        .bit_tick(bit_tick)
-    );
-
-    // DUT: uart_tx
-    reg in_valid;
-    wire in_ready;
-    reg [7:0] in_data;
-    reg parity_en, parity_odd;
+    reg [7:0] tx_data;
+    reg tx_start;
     wire tx;
-    wire busy;
+    wire [7:0] rx_data;
+    wire rx_ready;
 
-    uart_tx u_tx (
+    // loopback (connect TX → RX again for visibility)
+    wire rx = tx;
+
+    uart_top dut (
         .clk(clk),
         .reset(reset),
-        .oversample_tick(oversample_tick),
-        .in_valid(in_valid),
-        .in_ready(in_ready),
-        .in_data(in_data),
-        .parity_en(parity_en),
-        .parity_odd(parity_odd),
+        .rx(rx),
+        .tx_data(tx_data),
+        .tx_start(tx_start),
         .tx(tx),
-        .busy(busy)
+        .rx_data(rx_data),
+        .rx_ready(rx_ready)
     );
 
     initial begin
-        // reset
-        reset = 1; in_valid = 0; in_data = 8'h00;
-        parity_en = 1; parity_odd = 0;
+        reset = 1;
+        tx_start = 0;
+        tx_data  = 8'h00;
         repeat (8) @(posedge clk);
         reset = 0;
 
-        // Send "A"
+        // Send 'A'
         @(posedge clk);
-        in_data  = 8'h41;   // ASCII 'A'
-        in_valid = 1'b1;
-
+        tx_data  = 8'h41; // ASCII 'A'
+        tx_start = 1;
         @(posedge clk);
-        in_valid = 1'b0;
+        tx_start = 0;
 
-        wait (!busy);
+        wait(rx_ready);
+        $display("TX sent 'A', RX got: %c (0x%02h)", rx_data, rx_data);
+
         repeat (2000) @(posedge clk);
         $finish;
     end
+
 endmodule
