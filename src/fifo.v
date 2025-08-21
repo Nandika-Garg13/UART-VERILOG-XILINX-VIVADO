@@ -1,48 +1,46 @@
-`timescale 1ns/1ps
 // ============================================================
-// Simple FIFO (First-In First-Out) Buffer
-// Depth = parameterized, Width = 8 bits
+// Simple FIFO
 // ============================================================
 module fifo #(
-    parameter DEPTH = 16,
-    parameter WIDTH = 8
+    parameter DATA_WIDTH = 8,
+    parameter DEPTH = 16
 )(
-    input  wire             clk,
-    input  wire             reset,
-    input  wire             wr_en,
-    input  wire [WIDTH-1:0] wr_data,
-    input  wire             rd_en,
-    output reg  [WIDTH-1:0] rd_data,
-    output wire             full,
-    output wire             empty
+    input  wire clk,
+    input  wire reset,
+    input  wire wr_en,
+    input  wire rd_en,
+    input  wire [DATA_WIDTH-1:0] din,
+    output reg  [DATA_WIDTH-1:0] dout,
+    output reg  full,
+    output reg  empty
 );
 
-    localparam ADDR_WIDTH = $clog2(DEPTH);
-
-    reg [WIDTH-1:0] mem [0:DEPTH-1];
-    reg [ADDR_WIDTH:0] wr_ptr;
-    reg [ADDR_WIDTH:0] rd_ptr;
-
-    assign empty = (wr_ptr == rd_ptr);
-    assign full  = ((wr_ptr[ADDR_WIDTH-1:0] == rd_ptr[ADDR_WIDTH-1:0]) &&
-                    (wr_ptr[ADDR_WIDTH]     != rd_ptr[ADDR_WIDTH]));
+    reg [DATA_WIDTH-1:0] mem [0:DEPTH-1];
+    reg [$clog2(DEPTH):0] w_ptr, r_ptr, count;
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin
-            wr_ptr <= 0;
-        end else if (wr_en && !full) begin
-            mem[wr_ptr[ADDR_WIDTH-1:0]] <= wr_data;
-            wr_ptr <= wr_ptr + 1;
-        end
-    end
+            w_ptr <= 0;
+            r_ptr <= 0;
+            count <= 0;
+            full <= 0;
+            empty <= 1;
+        end else begin
+            // write
+            if (wr_en && !full) begin
+                mem[w_ptr] <= din;
+                w_ptr <= w_ptr + 1;
+                count <= count + 1;
+            end
+            // read
+            if (rd_en && !empty) begin
+                dout <= mem[r_ptr];
+                r_ptr <= r_ptr + 1;
+                count <= count - 1;
+            end
 
-    always @(posedge clk or posedge reset) begin
-        if (reset) begin
-            rd_ptr  <= 0;
-            rd_data <= 0;
-        end else if (rd_en && !empty) begin
-            rd_data <= mem[rd_ptr[ADDR_WIDTH-1:0]];
-            rd_ptr  <= rd_ptr + 1;
+            full  <= (count == DEPTH);
+            empty <= (count == 0);
         end
     end
 endmodule
