@@ -6,66 +6,41 @@
 module tb_uart;
 
     reg clk = 0;
-    always #10 clk = ~clk;   // 50 MHz
+    always #10 clk = ~clk; // 50 MHz
 
     reg reset = 1;
 
-    wire oversample_tick, bit_tick;
-    baud_gen #(.CLK_FREQ(50_000_000), .BAUD(115200)) u_baud (
-        .clk(clk),
-        .reset(reset),
-        .oversample_tick(oversample_tick),
-        .bit_tick(bit_tick)
-    );
-
-    // TX
-    reg in_valid;
-    wire in_ready;
-    reg [7:0] in_data;
-    reg parity_en, parity_odd;
+    // DUT signals
+    reg [7:0] tx_data;
+    reg tx_start;
     wire tx;
-    wire busy;
-
-    uart_tx u_tx (
-        .clk(clk),
-        .reset(reset),
-        .oversample_tick(oversample_tick),
-        .in_valid(in_valid),
-        .in_ready(in_ready),
-        .in_data(in_data),
-        .parity_en(parity_en),
-        .parity_odd(parity_odd),
-        .tx(tx),
-        .busy(busy)
-    );
-
-    // RX
-    wire rx_valid;
-    reg rx_ready;
     wire [7:0] rx_data;
-    wire parity_err, frame_err;
+    wire rx_ready;
 
-    uart_rx u_rx (
+    // Loopback
+    wire rx = tx;
+
+    // DUT instance
+    uart_top dut (
         .clk(clk),
         .reset(reset),
-        .oversample_tick(oversample_tick),
-        .rx(tx),
-        .parity_en(parity_en),
-        .parity_odd(parity_odd),
-        .rx_valid(rx_valid),
-        .rx_ready(rx_ready),
+        .rx(rx),
+        .tx_data(tx_data),
+        .tx_start(tx_start),
+        .tx(tx),
         .rx_data(rx_data),
-        .parity_err(parity_err),
-        .frame_err(frame_err)
+        .rx_ready(rx_ready)
     );
 
+    // stimulus
     initial begin
-        reset = 1; in_valid = 0; rx_ready = 0;
-        in_data = 0; parity_en = 1; parity_odd = 0;
+        reset = 1;
+        tx_start = 0;
+        tx_data  = 0;
         repeat (8) @(posedge clk);
         reset = 0;
 
-        // Transmit HELLO
+        // Send HELLO
         send_byte("H");
         send_byte("E");
         send_byte("L");
@@ -80,16 +55,13 @@ module tb_uart;
         input [7:0] b;
         begin
             @(posedge clk);
-            in_data  = b;
-            in_valid = 1;
+            tx_data  = b;
+            tx_start = 1;
             @(posedge clk);
-            in_valid = 0;
-            wait(rx_valid);
-            $display("RX: %c (0x%02h), parity_err=%b, frame_err=%b",
-                     rx_data, rx_data, parity_err, frame_err);
-            rx_ready = 1;
-            @(posedge clk);
-            rx_ready = 0;
+            tx_start = 0;
+
+            wait(rx_ready);
+            $display("RX: %c (0x%02h)", rx_data, rx_data);
         end
     endtask
 
