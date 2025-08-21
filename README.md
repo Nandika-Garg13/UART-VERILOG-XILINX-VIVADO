@@ -53,10 +53,10 @@ tx_wr_en, tx_wr_data, tx_full
 
 rx_rd_en, rx_rd_data, rx_empty, rx_valid
 
-Error outputs: parity_err, frame_err.
+**Error outputs:** parity_err, frame_err.
 
-**Testbenches:
-**
+**Testbenches:**
+
 tb_uart_tx.v: Verifies transmitter functionality.
 
 tb_uart_rx.v: Verifies receiver operation.
